@@ -1,0 +1,14 @@
+
+func InitTables(engine *xorm.Engine) error {
+	beans := []interface{}{
+	  {{range $k,$v:= .arr}}{{$v.Name}} : {{$v.Age}},
+	  {{end}}
+		&Project{},
+	}
+
+	if err := engine.Sync2(beans...); err != nil {
+		return err
+	}
+
+	return nil
+}

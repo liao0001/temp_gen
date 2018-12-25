@@ -1,0 +1,44 @@
+
+# 结构名
+object_name:  Role
+# 结构名+s
+object_names: Roles
+# 驼峰式
+object_bson_name: role
+# 驼峰式+s
+object_bson_names: roles
+# json 格式
+object_json_name: role
+object_json_names: roles
+label: 角色
+# 是否有updated字段
+not_update: false
+# 是否有deleted字敦
+not_delete: false
+# 表单结构注释
+comment: 角色
+
+fields:
+  -  field_name: Name
+     field_type: string
+     is_json: false
+     field_label: 角色名称
+     is_hidden: false
+     json_name: name
+     display_type: text
+     index_width: 140
+     is_display: true
+     editable: false
+     is_query: true
+  -  field_name: PermissionIds
+     field_type: "[]int"
+     is_json: true
+     field_label: 权限数组
+     is_hidden: false
+     json_name: permission_ids
+     display_type: text
+     index_width: 240
+     is_display: true
+     editable: false
+
+
