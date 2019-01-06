@@ -1,0 +1,11 @@
+# 生成的model存放位置  例如： D:\workspace\dev\src\xxhpt\app\models
+models_path: E:\workSpace\go\dev\src\xxhpt\app\models
+services_path: E:\workSpace\go\dev\src\xxhpt\app\services
+controllers_path: E:\workSpace\go\dev\src\xxhpt\app\controllers
+# 生成html页面 目录里面包含 index.html  edit.html  add.html
+webs_dir: E:\workSpace\go\dev\src\xxhpt\webs
+# 生成所需要的js  包含 index.js  add.js  edit.js
+js_dir: E:\workSpace\go\dev\src\xxhpt\public\js\static
+
+# 路由 文件路径
+router_file_path: E:\workSpace\go\dev\src\xxhpt\conf\routes

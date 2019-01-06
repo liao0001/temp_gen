@@ -1,0 +1,201 @@
+package controllers
+
+import (
+	"fmt"
+	"github.com/liao0001/orm"
+	"github.com/pkg/errors"
+	"github.com/revel/revel"
+	"time"
+	"xxhpt/app/models"
+	"xxhpt/app/utils"
+)
+
+type {{$.obj.ObjectNames}} struct {
+	App
+}
+
+//列表
+func (c *{{$.obj.ObjectNames}}) List() revel.Result {
+	page, pageSize, orderBy := c.getIndexListParams()
+
+	var draw int
+	c.Params.Bind(&draw, "draw")
+
+	queryCond := c.getQueryParam()
+
+	{{$.obj.ObjectBsonNames}}, err := c.DB.{{$.obj.ObjectNames}}().Get{{$.obj.ObjectNames}}ByPage(page, pageSize, orderBy, queryCond)
+	if err != nil {
+		return c.renderErrorJson(errors.Wrap(err, "查询列表失败"))
+	}
+
+	total, err := c.DB.{{$.obj.ObjectNames}}().Where(queryCond).Count()
+	if err != nil {
+		return c.renderErrorJson(errors.Wrap(err, "查询总记录数失败"))
+	}
+
+	return c.renderSuccessJson(map[string]interface{}{
+		"data":          {{$.obj.ObjectBsonNames}},
+		"draw":          draw,
+		"total":         total,
+		"totalFiltered": total,
+	})
+}
+
+//单条记录
+func (c *{{$.obj.ObjectNames}}) GetById(id int) revel.Result {
+	one, err := c.DB.{{$.obj.ObjectNames}}().Get{{$.obj.ObjectName}}ById(id)
+	if err != nil {
+		return c.renderErrorJson(errors.Wrap(err, "查询记录失败"))
+	}
+	return c.renderSuccessJson(one)
+}
+
+//增加
+func (c *{{$.obj.ObjectNames}}) Create() revel.Result {
+	var {{$.obj.ObjectBsonName}} models.{{$.obj.ObjectName }}
+	err := c.decodeRequestValues(&{{$.obj.ObjectBsonName }})
+	if err != nil {
+		return c.renderErrorJson(errors.Wrap(err, "获取参数失败"), PARAMS_INVALID)
+	}
+
+	_, err = c.DB.{{$.obj.ObjectNames}}().Insert(&{{$.obj.ObjectBsonName }})
+	if err != nil {
+		return c.renderErrorJson(errors.Wrap(err, "新增{{$.obj.Label}}信息失败"))
+	}
+
+	return c.renderSuccessJson("ok")
+}
+
+//更新
+func (c *{{$.obj.ObjectNames}}) Update() revel.Result {
+	var {{$.obj.ObjectBsonName }} models.{{$.obj.ObjectName }}
+	err := c.decodeRequestValues(&{{$.obj.ObjectBsonName}})
+	if err != nil {
+		return c.renderErrorJson(errors.Wrap(err, "获取参数失败"), PARAMS_INVALID)
+	}
+
+	if {{$.obj.ObjectBsonName}}.ID == 0 {
+		return c.renderErrorJson(errors.New("参数不正确,id不能为空"))
+	}
+	err = c.DB.{{$.obj.ObjectNames}}().ID({{$.obj.ObjectBsonName}}.ID).Update({{$.obj.ObjectBsonName}}, true)
+	if err != nil {
+		return c.renderErrorJson(errors.Wrap(err, "更新{{$.obj.Label}}信息失败"))
+	}
+	return c.renderSuccessJson("ok")
+}
+
+//删除
+func (c *{{$.obj.ObjectNames}}) Delete() revel.Result {
+	var param struct {
+		ID int `json:"id"`
+	}
+	err := c.decodeRequestValues(&param)
+	if err != nil {
+		return c.renderErrorJson(errors.Wrap(err, "获取参数失败"), PARAMS_INVALID)
+	}
+
+	if param.ID == 0 {
+		return c.renderErrorJson(errors.New("id不能为0"), PARAMS_INVALID)
+	}
+
+	err = c.DB.{{$.obj.ObjectNames}}().ID(param.ID).Delete()
+	if err != nil {
+		return c.renderErrorJson(errors.Wrap(err, "删除{{$.obj.Label}}失败"))
+	}
+
+	return c.renderSuccessJson("ok")
+}
+
+//批量删除
+func (c *{{$.obj.ObjectNames}}) DeleteByIds() revel.Result {
+	var param struct {
+		IDs []int `json:"ids"`
+	}
+	err := c.decodeRequestValues(&param)
+	if err != nil {
+		return c.renderErrorJson(errors.Wrap(err, "获取参数失败"), PARAMS_INVALID)
+	}
+
+	if len(param.IDs) == 0 {
+		return c.renderErrorJson(errors.New("选择项为空"), PARAMS_INVALID)
+	}
+
+	_, err = c.DB.{{$.obj.ObjectNames}}().Where(orm.Cond{"id in": param.IDs}).Delete()
+	if err != nil {
+		return c.renderErrorJson(errors.Wrap(err, "批量删除{{$.obj.Label}}失败"))
+	}
+
+	return c.renderSuccessJson("ok")
+}
+
+//获取列表的查询条件
+func (c *{{$.obj.ObjectNames}}) getQueryParam() orm.Cond {
+	cond := orm.Cond{}
+
+	queryLike := c.bindStringWithDefault("query_like", "")
+	if len(queryLike) > 0 {
+		cond["or"] = orm.Cond{"nickname like": queryLike, "or": orm.Cond{"phone like": queryLike, "or": orm.Cond{"email like": queryLike}}}
+	}
+
+	//这里是具体的cond
+	return cond
+}
+
+//导出为excel
+func (c *{{$.obj.ObjectNames}}) ExportExcel() revel.Result {
+	//获取需要导出的字段
+	sett, err := c.Service.{{$.obj.ObjectName}}Service.Get{{$.obj.ObjectName}}IndexFieldInfos()
+	if err != nil {
+		return c.renderErrorJson(errors.New("获取需要导出的字段信息失败," + err.Error()))
+	}
+
+	//获取表的字段信息
+	tableSett, err := c.DB.IndexFieldSettings().GetFieldSettingByName(c.DB.{{$.obj.ObjectNames}}().Name())
+	if err != nil {
+		return c.renderErrorJson(errors.New("获取表格字段信息失败," + err.Error()))
+	}
+	fields := sett.Fields
+	title := tableSett.TransferBody(fields)
+	//导出数据范围  page 表示本页  query表示查询的所有结果  all表示所有数据
+	dataRange := c.bindStringWithDefault("dataRange", "")
+
+	page, pageSize, orderBy := c.getIndexListParams()
+	//内容数据
+	var datas []map[string]string
+	switch dataRange {
+	case "page":
+		query := c.getQueryParam()
+		err = c.DB.{{$.obj.ObjectNames}}().Where(query).Limit(pageSize).Offset(pageSize * (page - 1)).OrderBy(orderBy).All(&datas)
+	case "query":
+		query := c.getQueryParam()
+		err = c.DB.{{$.obj.ObjectNames}}().Where(query).OrderBy(orderBy).All(&datas)
+	default:
+		err = c.DB.{{$.obj.ObjectNames}}().Where().OrderBy(orderBy).All(&datas)
+	}
+	if err != nil {
+		return c.renderErrorJson(errors.New("获取{{$.obj.Label}}信息失败," + err.Error()))
+	}
+
+	body := make([][]interface{}, len(datas))
+
+	for i := 0; i < len(datas); i++ {
+		body[i] = make([]interface{}, len(sett.Fields))
+		for k := 0; k < len(sett.Fields); k++ {
+			fNa := sett.Fields[k]
+			if t, ok := datas[i][fNa]; ok {
+				//这里做特殊处理
+
+				body[i][k] = t
+			} else {
+				body[i][k] = ""
+			}
+		}
+	}
+
+	fileName := utils.GenerateExcelFileName(tableSett.CName)
+	file, err := utils.DataToExcel(title, body)
+	if err != nil {
+		return c.renderErrorJson(errors.New("生成excel表格失败," + err.Error()))
+	}
+	return c.renderExcelFile(file, fileName)
+}

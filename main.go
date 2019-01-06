@@ -1,7 +1,11 @@
 package main
 
 import (
+	"bytes"
+	"errors"
 	"flag"
+	"fmt"
+	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -13,45 +17,178 @@ var mainRoot string
 var packageName string
 var selfPath string
 
-func init() {
-	flag.StringVar(&mainRoot, "p", "", "revel项目根目录的绝对路径")
-	flag.Parse()
-	mainRoot = `E:\workSpace\go\dev\src\test_template`
+type TargetPath struct {
+	ModelsPath      string `yaml:"models_path"`
+	ServicesPath    string `yaml:"services_path"`
+	ControllersPath string `yaml:"controllers_path"`
+	WebsDir         string `yaml:"webs_dir"`
+	JsDir           string `yaml:"js_dir"`
+	RouterFilePath  string `yaml:"router_file_path"`
+	Types           string
+	Forced          bool
+}
 
-	//checkRevelProject(mainRoot)
-	getTempPath()
+var globalPathConfig TargetPath
+
+func init() {
+	bs, err := ioutil.ReadFile("config.yaml")
+	if err != nil {
+		panic(err)
+	}
+	err = yaml.Unmarshal(bs, &globalPathConfig)
+	if err != nil {
+		panic(err)
+	}
+
+	var h string
+	flag.StringVar(&h, "h", "", "-h 查看参数含义")
+
+	var t string
+	flag.StringVar(&t, "t", "all", "types 表示需要生成的文件类型，可选项为: all(默认),js,webs,db,service,controller")
+	globalPathConfig.Types = t
+
+	var f bool
+	flag.BoolVar(&f, "f", false, "是否强制替换; false(默认): 如果文件已存在，则会给出提示并跳过;true: 会强制覆盖原文件(慎用)")
+	flag.Parse()
+	globalPathConfig.Forced = f
 }
 
 func main() {
 	//checkRevelProject(mainRoot)
 	//test()
 
-	testModel()
+	generateTemps()
 }
 
 //测试模板
-func testModel() {
+func generateTemps() {
+	var err error
 	obj := read_files.ReadYaml("./roles.yaml")
+	if globalPathConfig.Types == "all" || globalPathConfig.Types == "db" {
+		err = renderDb(obj, globalPathConfig.Forced)
+		if err != nil {
+			fmt.Printf("生成db文件失败:" + err.Error())
+		}
+	}
+	if globalPathConfig.Types == "all" || globalPathConfig.Types == "service" {
+		err = renderService(obj, globalPathConfig.Forced)
+		if err != nil {
+			fmt.Printf("生成service文件失败:" + err.Error())
+		}
+	}
+	if globalPathConfig.Types == "all" || globalPathConfig.Types == "controller" {
+		err = renderController(obj, globalPathConfig.Forced)
+		if err != nil {
+			fmt.Printf("生成controller文件失败:" + err.Error())
+		}
+	}
 
-	filePath := filepath.Join(selfPath, obj.ObjectJsonNames+".go")
-	os.Remove(filePath)
+	if globalPathConfig.Types == "all" || globalPathConfig.Types == "js" {
+		err = renderJs(obj, globalPathConfig.Forced)
+		if err != nil {
+			fmt.Printf("生成js文件失败:" + err.Error())
+		}
+	}
+
+	if globalPathConfig.Types == "all" || globalPathConfig.Types == "webs" {
+		err = renderWebs(obj, globalPathConfig.Forced)
+		if err != nil {
+			fmt.Printf("生成html文件失败:" + err.Error())
+		}
+	}
+
+	updateRouterFile(obj)
+}
+
+func renderDb(templ *read_files.TemplateStruct, forced bool) error {
+	filePath := filepath.Join(globalPathConfig.ModelsPath, templ.ObjectJsonNames+".go")
+	tempName := "db.temp"
+	//生成对应的repo 和 sync
+	updateDBFile(templ)
+	return renderFile(templ, filePath, tempName, forced)
+}
+
+func renderService(templ *read_files.TemplateStruct, forced bool) error {
+	filePath := filepath.Join(globalPathConfig.ServicesPath, templ.ObjectJsonName+"_service.go")
+	tempName := "service.temp"
+	updateServiceFile(templ)
+	return renderFile(templ, filePath, tempName, forced)
+}
+
+func renderController(templ *read_files.TemplateStruct, forced bool) error {
+	filePath := filepath.Join(globalPathConfig.ControllersPath, templ.ObjectJsonNames+".go")
+	tempName := "controller.temp"
+	return renderFile(templ, filePath, tempName, forced)
+}
+
+func renderJs(templ *read_files.TemplateStruct, forced bool) error {
+	//创建目录
+	dirPath := filepath.Join(globalPathConfig.JsDir, templ.ObjectJsonNames)
+	os.MkdirAll(dirPath, 0777)
+
+	var err error
+	indexJs := filepath.Join(dirPath, "index.js")
+	indexTempName := "index.js.temp"
+	err = renderFile(templ, indexJs, indexTempName, forced)
+	if err != nil {
+		fmt.Println("生成index.js文件失败," + err.Error())
+	}
+	//addJs := filepath.Join(dirPath, "add.js")
+	//addTempName := "add.js.temp"
+	//err = renderFile(templ, addJs, addTempName, forced)
+	//if err != nil {
+	//	fmt.Println("生成add.js文件失败," + err.Error())
+	//}
+	//
+	//editJs := filepath.Join(dirPath, "edit.js")
+	//editTempName := "edit.js.temp"
+	//err = renderFile(templ, editJs, editTempName, forced)
+	//if err != nil {
+	//	fmt.Println("生成edit.js文件失败," + err.Error())
+	//}
+	return nil
+}
+
+func renderWebs(templ *read_files.TemplateStruct, forced bool) error {
+	//创建目录
+	dirPath := filepath.Join(globalPathConfig.WebsDir, templ.ObjectJsonNames)
+	os.MkdirAll(dirPath, 0777)
+
+	var err error
+	indexHtml := filepath.Join(dirPath, "index.html")
+	indexTempName := "index.html.temp"
+	err = renderFile(templ, indexHtml, indexTempName, forced)
+	if err != nil {
+		fmt.Println("生成index.html文件失败," + err.Error())
+	}
+	return nil
+}
+
+func renderFile(templ *read_files.TemplateStruct, filePath string, tempName string, forced bool) error {
+	if forced {
+		os.Remove(filePath)
+	} else if _, err := os.Stat(filePath); err == nil {
+		fmt.Printf("文件已存在:%s\n", filePath)
+		os.Exit(-1)
+	}
 
 	f, err := os.Create(filePath)
 	if err != nil {
-		panic("创建文件失败," + err.Error())
+		return errors.New("创建文件失败," + err.Error())
 	}
 
 	res := map[string]interface{}{
-		"obj": obj,
+		"obj": templ,
 	}
 
-	tempPath := filepath.Join(selfPath, "temps", "db.temp")
-	te := getTemplate(tempPath, obj.ObjectBsonName)
+	tempPath := filepath.Join(selfPath, "temps", tempName)
+	te := getTemplate(tempPath, templ.ObjectBsonName)
 
 	err = te.Execute(f, res)
 	if err != nil {
-		panic("转化模板失败," + err.Error())
+		return errors.New("转化模板失败," + err.Error())
 	}
+	return nil
 }
 
 //获取模板
@@ -68,73 +205,120 @@ func getTemplate(p string, name string) *template.Template {
 	return t
 }
 
-//检测是否为revel项目
-func checkRevelProject(mainRoot string) {
-	//检测是否为revel项目
-	fileInfo, err := os.Stat(mainRoot)
-	if err != nil || !fileInfo.IsDir() {
-		panic("无效路径:" + mainRoot)
+//单独处理db.go 文件
+func updateDBFile(templ *read_files.TemplateStruct) {
+	filePath := filepath.Join(globalPathConfig.ModelsPath, "db.go")
+	repoSignStr := "////// repo"
+	syncTableStr := "////// syncTable"
+
+	repoNewStr := fmt.Sprintf(`func (db *DB) %s() *%sRepo {
+	return &%sRepo{orm.New(func() interface{} {
+		return &%s{}
+	})(db.Engine).WithSession(db.session)}
+}
+
+`, templ.ObjectNames, templ.ObjectName, templ.ObjectName, templ.ObjectName)
+
+	syncNewStr := fmt.Sprintf(`&%s{},
+`, templ.ObjectName)
+
+	bs, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		fmt.Println("读取db.go失败:" + err.Error())
+		return
 	}
 
-	//检查必要目录或者文件
-	dirs := []string{
-		filepath.Join(mainRoot, "app", "controllers"),
-		filepath.Join(mainRoot, "app", "views"),
-		filepath.Join(mainRoot, "app", "init.go"),
-		filepath.Join(mainRoot, "conf", "app.conf"),
-		filepath.Join(mainRoot, "public"),
-		filepath.Join(mainRoot, "templates"),
+	needUpdate := false
+	if bytes.Index(bs, []byte(repoNewStr)) == -1 {
+		bs = bytes.Replace(bs, []byte(repoSignStr), []byte(repoNewStr+repoSignStr), -1)
+		needUpdate = true
 	}
-	for _, fn := range dirs {
-		_, err = os.Stat(fn)
+
+	if bytes.Index(bs, []byte(syncNewStr)) == -1 {
+		bs = bytes.Replace(bs, []byte(syncTableStr), []byte(syncNewStr+syncTableStr), -1)
+		needUpdate = true
+	}
+
+	if needUpdate {
+		err = ioutil.WriteFile(filePath, bs, 0666)
 		if err != nil {
-			panic("项目缺少文件或者目录: " + fn)
+			fmt.Println("重写db.go失败:" + err.Error())
+			return
 		}
 	}
 }
 
-func getTempPath() {
-	p, err := os.Getwd()
+func updateServiceFile(templ *read_files.TemplateStruct) {
+	filePath := filepath.Join(globalPathConfig.ServicesPath, "base_service.go")
+	signStr := "////// service defined"
+	setStr := "////// service set"
+
+	signNewStr := fmt.Sprintf(`%sService %sService
+`, templ.ObjectName, templ.ObjectName)
+
+	setNewStr := fmt.Sprintf(`%sService{baseService},
+`, templ.ObjectName)
+
+	bs, err := ioutil.ReadFile(filePath)
 	if err != nil {
-		panic("获取当前目录信息失败，" + err.Error())
+		fmt.Println("读取db.go失败:" + err.Error())
+		return
 	}
-	selfPath = p
+
+	needUpdate := false
+	if bytes.Index(bs, []byte(signNewStr)) == -1 {
+		bs = bytes.Replace(bs, []byte(signStr), []byte(signNewStr+signStr), -1)
+		needUpdate = true
+	}
+
+	if bytes.Index(bs, []byte(setNewStr)) == -1 {
+		bs = bytes.Replace(bs, []byte(setStr), []byte(setNewStr+setStr), -1)
+		needUpdate = true
+	}
+
+	if needUpdate {
+		err = ioutil.WriteFile(filePath, bs, 0666)
+		if err != nil {
+			fmt.Println("重写base_service.go失败:" + err.Error())
+			return
+		}
+	}
 }
 
-//测试模板
-func test() {
-	tempPath := filepath.Join(selfPath, "temps", "models", "test.temp")
-	bs, err := ioutil.ReadFile(tempPath)
+func updateRouterFile(templ *read_files.TemplateStruct) {
+	filePath := globalPathConfig.RouterFilePath
+	signStr := "########## template sign"
+
+	signNewStr := fmt.Sprintf(`
+# %s
+GET     /api/%s/list                       %s.List
+GET     /api/%s/get                        %s.GetById
+POST    /api/%s/add                        %s.Create
+POST    /api/%s/update                     %s.Update
+POST    /api/%s/delete                     %s.Delete
+POST    /api/%s/deletebyids                %s.DeleteByIds
+
+`, templ.Label, templ.ObjectJsonNames, templ.ObjectNames, templ.ObjectJsonNames, templ.ObjectNames,
+		templ.ObjectJsonNames, templ.ObjectNames, templ.ObjectJsonNames, templ.ObjectNames,
+		templ.ObjectJsonNames, templ.ObjectNames, templ.ObjectJsonNames, templ.ObjectNames)
+
+	bs, err := ioutil.ReadFile(filePath)
 	if err != nil {
-		panic("读取文件内容失败," + err.Error())
-	}
-	t, err := template.New("sss").Parse(string(bs))
-	if err != nil {
-		panic("解析模板失败," + err.Error())
+		fmt.Println("读取router失败:" + err.Error())
+		return
 	}
 
-	filePath := filepath.Join(selfPath, "roles.go")
-	os.Remove(filePath)
-
-	f, err := os.Create(filePath)
-	if err != nil {
-		panic("创建文件失败," + err.Error())
+	needUpdate := false
+	if bytes.Index(bs, []byte(signNewStr)) == -1 {
+		bs = bytes.Replace(bs, []byte(signStr), []byte(signNewStr+signStr), -1)
+		needUpdate = true
 	}
 
-	arr := []struct {
-		Name string
-		Age  int
-	}{
-		{Name: "测试名称", Age: 1},
-		{Name: "测试名称2", Age: 2},
-		{Name: "测试名称3", Age: 3},
-	}
-	res := map[string]interface{}{
-		"arr": arr,
-	}
-
-	err = t.Execute(f, res)
-	if err != nil {
-		panic("转化模板失败," + err.Error())
+	if needUpdate {
+		err = ioutil.WriteFile(filePath, bs, 0666)
+		if err != nil {
+			fmt.Println("重写router失败:" + err.Error())
+			return
+		}
 	}
 }

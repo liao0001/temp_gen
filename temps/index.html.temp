@@ -1,0 +1,377 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+	<title>{{$.obj.Label}}列表</title>
+
+	<link href="/public/css/bootstrap.min.css" rel="stylesheet">
+	<link href="/public/font-awesome/css/font-awesome.css" rel="stylesheet">
+	<link rel="shortcut icon" type="image/png" href="/public/img/favicon.png">
+	<link href="/public/css/plugins/toastr/toastr.min.css" rel="stylesheet">
+
+	<!-- Gritter -->
+	<link href="/public/js/plugins/gritter/jquery.gritter.css" rel="stylesheet">
+	<link href="/public/css/animate.css" rel="stylesheet">
+	<link href="/public/css/style.css" rel="stylesheet">
+	<link href="/public/css/plugins/dataTables/datatables.min.css" rel="stylesheet">
+	<link href="/public/css/plugins/datapicker/datepicker3.css" rel="stylesheet">
+
+
+	<script src="/public/js/jquery-3.1.1.min.js"></script>
+	<script src="/public/js/bootstrap.min.js"></script>
+	<script src="/public/js/plugins/metisMenu/jquery.metisMenu.js"></script>
+	<script src="/public/js/plugins/slimscroll/jquery.slimscroll.min.js"></script>
+	<script src="/public/js/plugins/toastr/toastr.min.js"></script>
+	<script src="/public/js/ejs/ejs.min.js"></script>
+	<script src="/public/js/common.js"></script>
+	<script src="/public/js/index_fields.js"></script>
+
+</head>
+
+<body>
+
+<div id="wrapper">
+
+	<!-- 菜单栏 -->
+	<nav class="navbar-default navbar-static-side" role="navigation">
+		<div class="sidebar-collapse">
+			<ul class="nav metismenu" id="side-menu">
+
+				<li class="nav-header">
+					<div class="dropdown profile-element"> <span>
+			<img alt="image" class="img-circle" src="img/profile_small.jpg" />
+			 </span>
+						<a data-toggle="dropdown" class="dropdown-toggle" href="#">
+                            <span class="clear"> <span class="block m-t-xs"> <strong class="font-bold">David Williams</strong>
+                             </span> <span class="text-muted text-xs block">Art Director <b class="caret"></b></span> </span> </a>
+						<ul class="dropdown-menu animated fadeInRight m-t-xs">
+							<li><a href="profile.html">Profile</a></li>
+							<li><a href="contacts.html">Contacts</a></li>
+							<li><a href="mailbox.html">Mailbox</a></li>
+							<li class="divider"></li>
+							<li><a href="login.html">Logout</a></li>
+						</ul>
+					</div>
+					<div class="logo-element">
+						IN+
+					</div>
+				</li>
+
+			</ul>
+		</div>
+	</nav>
+
+	<div id="page-wrapper" class="gray-bg">
+
+		<!--顶部菜单-->
+		<div class="row border-bottom">
+			<nav class="navbar navbar-static-top" role="navigation" style="margin-bottom: 0">
+				<div class="navbar-header">
+					<a class="navbar-minimalize minimalize-styl-2 btn btn-primary " href="#"><i class="fa fa-bars"></i> </a>
+					<form role="search" class="navbar-form-custom" action="search_results.html">
+						<div class="form-group">
+							<input type="text" placeholder="Search for something..." class="form-control" name="top-search" id="top-search">
+						</div>
+					</form>
+				</div>
+				<ul class="nav navbar-top-links navbar-right">
+					<li>
+						<iframe width="186" scrolling="no" height="30" frameborder="0" allowtransparency="true"
+										src="http://i.tianqi.com/index.php?c=code&id=1&icon=1&py=huangpu1&wind=0&num=1&site=14"></iframe>
+					</li>
+					<li class="dropdown">
+						<a class="dropdown-toggle count-info" data-toggle="dropdown" href="#">
+							<i class="fa fa-envelope"></i>  <span class="label label-warning">16</span>
+						</a>
+						<ul class="dropdown-menu dropdown-messages">
+							<li>
+								<div class="dropdown-messages-box">
+									<a href="profile.html" class="pull-left">
+										<img alt="image" class="img-circle" src="img/a7.jpg">
+									</a>
+									<div class="media-body">
+										<small class="pull-right">46h ago</small>
+										<strong>Mike Loreipsum</strong> started following <strong>Monica Smith</strong>. <br>
+										<small class="text-muted">3 days ago at 7:58 pm - 10.06.2014</small>
+									</div>
+								</div>
+							</li>
+							<li class="divider"></li>
+							<li>
+								<div class="dropdown-messages-box">
+									<a href="profile.html" class="pull-left">
+										<img alt="image" class="img-circle" src="img/a4.jpg">
+									</a>
+									<div class="media-body ">
+										<small class="pull-right text-navy">5h ago</small>
+										<strong>Chris Johnatan Overtunk</strong> started following <strong>Monica Smith</strong>. <br>
+										<small class="text-muted">Yesterday 1:21 pm - 11.06.2014</small>
+									</div>
+								</div>
+							</li>
+							<li class="divider"></li>
+							<li>
+								<div class="dropdown-messages-box">
+									<a href="profile.html" class="pull-left">
+										<img alt="image" class="img-circle" src="img/profile.jpg">
+									</a>
+									<div class="media-body ">
+										<small class="pull-right">23h ago</small>
+										<strong>Monica Smith</strong> love <strong>Kim Smith</strong>. <br>
+										<small class="text-muted">2 days ago at 2:30 am - 11.06.2014</small>
+									</div>
+								</div>
+							</li>
+							<li class="divider"></li>
+							<li>
+								<div class="text-center link-block">
+									<a href="mailbox.html">
+										<i class="fa fa-envelope"></i> <strong>Read All Messages</strong>
+									</a>
+								</div>
+							</li>
+						</ul>
+					</li>
+					<li class="dropdown">
+						<a class="dropdown-toggle count-info" data-toggle="dropdown" href="#">
+							<i class="fa fa-bell"></i>  <span class="label label-primary">8</span>
+						</a>
+						<ul class="dropdown-menu dropdown-alerts">
+							<li>
+								<a href="mailbox.html">
+									<div>
+										<i class="fa fa-envelope fa-fw"></i> You have 16 messages
+										<span class="pull-right text-muted small">4 minutes ago</span>
+									</div>
+								</a>
+							</li>
+							<li class="divider"></li>
+							<li>
+								<a href="profile.html">
+									<div>
+										<i class="fa fa-twitter fa-fw"></i> 3 New Followers
+										<span class="pull-right text-muted small">12 minutes ago</span>
+									</div>
+								</a>
+							</li>
+							<li class="divider"></li>
+							<li>
+								<a href="grid_options.html">
+									<div>
+										<i class="fa fa-upload fa-fw"></i> Server Rebooted
+										<span class="pull-right text-muted small">4 minutes ago</span>
+									</div>
+								</a>
+							</li>
+							<li class="divider"></li>
+							<li>
+								<div class="text-center link-block">
+									<a href="notifications.html">
+										<strong>See All Alerts</strong>
+										<i class="fa fa-angle-right"></i>
+									</a>
+								</div>
+							</li>
+						</ul>
+					</li>
+
+					<li>
+						<a href="login.html">
+							<i class="fa fa-sign-out"></i> Log out
+						</a>
+					</li>
+				</ul>
+
+			</nav>
+		</div>
+
+		<div class="row wrapper border-bottom white-bg page-heading">
+			<div class="col-lg-10">
+				<h5>  </h5>
+				<ol class="breadcrumb">
+					<li>
+						<a href="index.html">主页</a>
+					</li>
+					<li>
+						<a>用户管理</a>
+					</li>
+					<li class="active">
+						<strong>{{$.obj.Label}}列表</strong>
+					</li>
+				</ol>
+			</div>
+		</div>
+			<div class="row">
+				<div class="ibox float-e-margins">
+
+					<!-- 查询和菜单 -->
+					<div class="ibox-content">
+						<div class="row">
+
+							<!-- 显示字段 -->
+							<div class="col-sm-1">
+								<button type="button" class="btn btn-sm btn-danger" data-toggle="modal" data-target="#index-fields-select-form"><i class="fa fa-wrench"></i> 显示字段 </button>
+							</div>
+
+							<div class="modal inmodal" id="index-fields-select-form" tabindex="-1" role="dialog" aria-hidden="true" style="display: none;">
+								<!-- ejs模板 -->
+							</div>
+
+							<!-- 导出 -->
+							<div class="col-sm-1">
+								<div class="btn-group">
+									<button data-toggle="dropdown" class="btn btn-primary btn-sm dropdown-toggle" aria-expanded="false"><i class="fa fa-upload"></i> 导出  </button>
+									<ul class="dropdown-menu">
+										<li><a  class="dropdown-item" dataRange="page">导出本页数据</a></li>
+										<li><a class="dropdown-item" dataRange="query">导出当前查询所有数据</a></li>
+										<li><a class="dropdown-item" dataRange="all">导出所有数据</a></li>
+									</ul>
+								</div>
+
+							</div>
+
+							<!-- 新建 -->
+							<div class="col-sm-2 m-b-xs">
+								<a type="button" class="btn btn-sm btn-info" href="/webs/{{$.obj.ObjectJsonNames}}/add.html"> <i class='fa fa-plus'></i> 新建</a>
+							</div>
+
+							<div class="col-sm-4 m-b-xs">
+							</div>
+
+							<!-- 查询 -->
+							<div class="col-sm-3">
+								<form class="inline" id="query-like-form">
+									<div class="input-group advancedQueryForm">
+										<input type="text" name="query_like" placeholder="输入工号、姓名、或者手机号查询" class="input-sm form-control">
+										<span class="input-group-btn">
+											<button type="button" id="queryLike" class="btn btn-sm btn-primary"> 查询 </button>
+										</span>
+									</div>
+								</form>
+							</div>
+
+							<!-- 高级查询 -->
+							<div class="col-sm-1">
+								<div class="input-group">
+								<button type="button" class="btn btn-sm  btn-success" id="button-switch-advanced_query"> <i class="fa fa-search"></i> 高级查询 </button></div>
+							</div>
+						</div>
+						<!-- 高级查询菜单 -->
+
+						<div class="ibox-content" id="advancedQueryForm" style="display: none">
+							<form  class="form-horizontal">
+								<div class="row">
+									<div class="col-sm-3">
+										<div class="form-group">
+											<label class="col-sm-3 control-label">姓名</label>
+											<div class="col-sm-9">
+												<input type="text" class="form-control" name="nickname" value="">
+											</div>
+										</div>
+									</div>
+									<div class="col-sm-3">
+										<div class="form-group">
+											<label class="col-sm-3 control-label">性别</label>
+											<div class="col-sm-9">
+												<select class="form-control m-b" name="gender">
+													<option></option>
+													<option value="1" >男</option>
+													<option value="2" >女</option>
+												</select>
+											</div>
+										</div>
+									</div>
+									<div class="col-sm-3">
+										<div class="form-group">
+											<label class="col-sm-3 control-label">邮箱</label>
+											<div class="col-sm-9">
+												<input type="text" class="form-control" name="email" value="">
+											</div>
+										</div>
+									</div>
+									<div class="col-sm-3">
+										<div class="form-group">
+											<label class="col-sm-3 control-label">手机</label>
+											<div class="col-sm-9">
+												<input type="text" class="form-control" name="phone" value="">
+											</div>
+										</div>
+									</div>
+								</div>
+								<div class="row">
+								<div class="col-sm-3">
+									<div class="form-group">
+										<label class="col-sm-3 control-label">固定电话</label>
+										<div class="col-sm-9">
+											<input type="text" class="form-control" name="fixed_phone" value="">
+										</div>
+									</div>
+								</div>
+								<div class="col-sm-4">
+									<div class="form-group">
+										<label class="col-sm-3 control-label">生日</label>
+										<div class="col-sm-9 input-daterange input-group">
+											<input type="text" class="input-sm form-control" name="birth_start" value="">
+											<span class="input-group-addon">to</span>
+											<input type="text" class="input-sm form-control" name="birth_end" value="">
+										</div>
+									</div>
+								</div>
+								<div class="col-sm-4">
+									<div class="form-group">
+										<label class="col-sm-3 control-label">创建时间</label>
+										<div class="col-sm-9 input-daterange input-group">
+											<input type="text" class="input-sm form-control" name="created_at_start" value="">
+											<span class="input-group-addon">to</span>
+											<input type="text" class="input-sm form-control" name="created_at_end" value="">
+										</div>
+									</div>
+								</div>
+
+								<div class="col-sm-2">
+									<button type="button" class="btn btn-sm btn-primary" id="button-advanced-query">  查询 </button>
+									<button type="button" class="btn btn-sm btn-danger" onclick="clearFormValues(this)">  重置  </button>
+								</div>
+
+							</div>
+							</form>
+					</div>
+
+				</div>
+
+					<!-- 数据列表 -->
+					<div class="ibox-content">
+						<div class="table-responsive">
+							<table class="table table-striped table-bordered table-hover dataTables-example" id="main_data_table">
+								<thead>
+								</thead>
+							</table>
+						</div>
+					</div>
+
+				</div>
+			</div>
+
+		<div class="footer">
+			<div class="pull-right">
+				<strong>版权所有</strong> 上海司睿杰建筑科技有限公司 &copy; 2018-2019
+			</div>
+		</div>
+	</div>
+
+	<script src="/public/js/plugins/dataTables/datatables.min.js"></script>
+	<!-- Custom and plugin javascript -->
+	<script src="/public/js/inspinia.js"></script>
+	<script src="/public/js/plugins/pace/pace.min.js"></script>
+	<script src="/public/js/plugins/dataTables/datatables.min.js"></script>
+	<script src="/public/js/plugins/datapicker/bootstrap-datepicker.js"></script>
+
+	<script src="/public/js/static/{{$.obj.ObjectJsonNames}}/index.js"></script>
+</div>
+</body>
+
+</html>

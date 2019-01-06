@@ -24,10 +24,19 @@ type {{$.obj.ObjectName}}Repo struct {
 
 func (r *{{$.obj.ObjectName}}Repo) GetFields() []FieldInfo {
 	return []FieldInfo{
-	  {{ range $v,$v:= $.obj.Fields }}{{if $v.IsHidden}}{{else}}{Name: "{{$v.JsonName}}", Label: "{{$v.FieldLabel}}", FieldType: "{{$v.DisplayType}}", IndexWidth: {{$v.IndexWidth}}, IsDisplay: {{$v.IsDisplay}}, Editable: {{$v.Editable}}},
-	  {{end}}{{end}}{Name: "created_at", Label: "创建时间", FieldType: "datetime", IndexWidth: 140, Editable: true},
-	  {{if not $.obj.NotUpdate}}{Name: "updated_at", Label: "更新时间", FieldType: "datetime", IndexWidth: 140, Editable: true},{{end}}
+	  {{ range $v,$v:= $.obj.Fields }}{{if $v.IsHidden}}{{else}}{Name: "{{$v.JsonName}}", Label: "{{$v.FieldLabel}}", FieldType: "{{$v.DisplayType}}", IndexWidth: {{$v.IndexWidth}}},
+	  {{end}}{{end}}{Name: "created_at", Label: "创建时间", FieldType: "datetime", IndexWidth: 140},
+	  {{if not $.obj.NotUpdate}}{Name: "updated_at", Label: "更新时间", FieldType: "datetime", IndexWidth: 140},{{end}}
 	}
+}
+
+func (r *{{$.obj.ObjectName}}Repo) GetDisplayFields() []string {
+	fields := r.GetFields()
+	res := make([]string, len(fields))
+	for i := 0; i < len(fields); i++ {
+		res[i] = fields[i].Name
+	}
+	return res
 }
 
 func (r *{{$.obj.ObjectName}}Repo) GetAll{{$.obj.ObjectNames}}() ([]{{$.obj.ObjectName}}, error) {
@@ -36,16 +45,13 @@ func (r *{{$.obj.ObjectName}}Repo) GetAll{{$.obj.ObjectNames}}() ([]{{$.obj.Obje
 	return arr, err
 }
 
-func (r *{{$.obj.ObjectName}}Repo) Get{{$.obj.ObjectNames}}ByPage(page int, pageSize int, asc string, desc string, query orm.Cond) ([]{{$.obj.ObjectName}}, error) {
-	var arr []{{$.obj.ObjectName}}
-	var err error
-	if len(asc) > 0 {
-		err = r.Where(query).Limit(pageSize).Offset(pageSize * (page - 1)).GroupBy(asc).All(&arr)
-	} else if len(desc) > 0 {
-		err = r.Where(query).Limit(pageSize).Offset(pageSize * (page - 1)).Desc(desc).All(&arr)
-	} else {
-		err = r.Where(query).Limit(pageSize).Offset(pageSize * (page - 1)).Desc("id").All(&arr)
+func (r *{{$.obj.ObjectName}}Repo) Get{{$.obj.ObjectNames}}ByPage(page int, pageSize int, orderBy string, query orm.Cond) ([]{{$.obj.ObjectName}}, error) {
+	if len(orderBy) == 0 {
+		orderBy = "created_at"
 	}
+
+	var arr []{{$.obj.ObjectName}}
+	err := r.Where(query).Limit(pageSize).Offset(pageSize * (page - 1)).OrderBy(orderBy).All(&arr)
 	return arr, err
 }
 

@@ -1,88 +1,113 @@
 package models
 
 import (
-	"database/sql"
-	"errors"
-	"fmt"
-	"github.com/go-xorm/core"
-	"github.com/go-xorm/xorm"
 	"github.com/liao0001/orm"
-	"github.com/revel/revel"
-	"io"
-	"os"
-	"path/filepath"
-	"reflect"
-	"strconv"
-	"strings"
 	"time"
 )
 
-type DB struct {
-	Engine  *xorm.Engine
-	session *xorm.Session
+type {{.obj.ObjectName}} struct {
+	ID         int       `json:"id" xorm:"id pk autoincr"`
+	Use rName   string    `json:"user_name" xorm:"user_name"`
+	Nickname   string    `json:"nickname" xorm:"nickname"`
+	Gender     Gender    `json:"gender" xorm:"gender"`
+	Birth      time.Time `json:"birth" xorm:"birth"`
+	HeadimgUrl string    `json:"headimg_url" xorm:"headimg_url"`
+	Password   string    `json:"password" xorm:"password"`
+	Email      string    `json:"email" xorm:"email"`
+	Phone      string    `json:"phone" xorm:"phone"`
+	FixedPhone string    `json:"fixed_phone" xorm:"fixed_phone"`
+	CreatedAt  time.Time `json:"created_at" xorm:"created_at created"`
+	UpdatedAt  time.Time `json:"updated_at" xorm:"updated_at updated"`
 }
 
-func (db *DB) WithSession(sess *xorm.Session) *DB {
-	return &DB{Engine: db.Engine, session: sess}
+func (user *User) TableName() string {
+	return "users"
 }
 
-func (db *DB) Begin() (*DB, error) {
-	if db.session != nil {
-		return nil, errors.New("run in the transaction")
+type Gender int
+
+func (g Gender) String() string {
+	switch g {
+	case 1:
+		return "男"
+	case 2:
+		return "女"
 	}
-	session := db.Engine.NewSession()
-
-	//开启事务
-	session.Begin()
-
-	return &DB{Engine: db.Engine, session: session}, nil
+	return ""
 }
 
-func (db *DB) Commit() error {
-	if db.session == nil {
-		return sql.ErrTxDone
+type UserRepo struct {
+	*orm.Collection
+}
+
+func (r *UserRepo) GetFields() []FieldInfo {
+	return []FieldInfo{
+		{Name: "user_name", Label: "用户名", FieldType: "text", IndexWidth: 100},
+		{Name: "nickname", Label: "姓名", FieldType: "text", IndexWidth: 200},
+		{Name: "gender", Label: "性别", FieldType: "text", IndexWidth: 140},
+		{Name: "email", Label: "邮箱", FieldType: "text", IndexWidth: 140},
+		{Name: "phone", Label: "手机", FieldType: "text", IndexWidth: 140},
+		{Name: "fixed_phone", Label: "固定电话", FieldType: "text", IndexWidth: 140},
+		{Name: "birth", Label: "出生日期", FieldType: "date", IndexWidth: 140},
+		{Name: "created_at", Label: "创建时间", FieldType: "datetime", IndexWidth: 140},
+		{Name: "updated_at", Label: "更新时间", FieldType: "datetime", IndexWidth: 140},
 	}
-	err := db.session.Commit()
-	db.session = nil
-	return err
 }
 
-func (db *DB) Rollback() error {
-	if db.session == nil {
-		return sql.ErrTxDone
+func (r *UserRepo) GetDisplayFields() []string {
+	fields := r.GetFields()
+	res := make([]string, len(fields))
+	for i := 0; i < len(fields); i++ {
+		res[i] = fields[i].Name
 	}
-	err := db.session.Rollback()
-	db.session = nil
-	return err
+	return res
 }
 
-func (db *DB) Close() error {
-	return db.Rollback()
+func (r *UserRepo) GetAllUsers() ([]User, error) {
+	var arr []User
+	err := r.Where().All(&arr)
+	return arr, err
 }
 
-func (db *DB) Query(sqlStr string, args ...interface{}) orm.Queryer {
-	return orm.NewWithNoInstance()(db.Engine).WithSession(db.session).Query(sqlStr, args...)
-}
-
-func (db *DB) Exec(sqlStr string, args ...interface{}) (sql.Result, error) {
-	return orm.NewWithNoInstance()(db.Engine).WithSession(db.session).Exec(sqlStr, args...)
-}
-
-func (db *DB) Apartments() *orm.Collection {
-	return orm.New(func() interface{} {
-		return &Apartment{}
-	})(db.Engine).WithSession(db.session)
-}
-
-
-func InitTables(engine *xorm.Engine) error {
-	beans := []interface{}{
-		&Project{},
+func (r *UserRepo) GetUsersByPage(page int, pageSize int, orderBy string, query orm.Cond) ([]User, error) {
+	if len(orderBy) == 0 {
+		orderBy = "created_at"
 	}
 
-	if err := engine.Sync2(beans...); err != nil {
-		return err
-	}
+	var arr []User
+	err := r.Where(query).Limit(pageSize).Offset(pageSize * (page - 1)).
+		OrderBy(orderBy).All(&arr)
+	return arr, err
+}
 
-	return nil
+func (r *UserRepo) GetAllUsersByIds(ids []int) ([]User, error) {
+	var arr []User
+	err := r.Where(orm.Cond{"id in": ids}).All(&arr)
+	return arr, err
+}
+
+func (r *UserRepo) GetAllUserMap() (map[int]User, error) {
+	var m map[int]User
+	err := r.Where().All(&m)
+	return m, err
+}
+
+func (r *UserRepo) GetAllUserMapByIds(ids []int) (map[int]User, error) {
+	var m map[int]User
+	err := r.Where(orm.Cond{"id in": ids}).All(&m)
+	return m, err
+}
+
+func (r *UserRepo) GetUserById(userId int) (*User, error) {
+	var user User
+	err := r.ID(userId).Get(&user)
+	return &user, err
+}
+
+func (r *UserRepo) InsertUser(user *User) (int, error) {
+	idInter, err := r.Insert(user)
+	if err != nil {
+		return 0, err
+	}
+	return (int)(idInter.(int64)), nil
 }

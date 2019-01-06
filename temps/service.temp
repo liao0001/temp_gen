@@ -1,0 +1,28 @@
+package services
+
+import (
+	"github.com/liao0001/orm"
+	"xxhpt/app/models"
+)
+
+type {{$.obj.ObjectName}}Service struct {
+	BaseService
+}
+
+//获取当前用户的index配置
+func (s *{{$.obj.ObjectName}}Service) Get{{$.obj.ObjectName}}IndexFieldInfos() (*models.IndexFieldSettingForUser, error) {
+	tableName := s.DB.{{$.obj.ObjectNames}}().Name()
+	userID := s.CurrentUser.ID
+	fieldSetting, err := s.DB.IndexFieldSettingsForUser().GetIndexFieldsByUserID(userID, tableName)
+	if err != nil {
+		if err == orm.ErrNotFound {
+			return &models.IndexFieldSettingForUser{
+				UserID: userID,
+				TName:  tableName,
+				Fields: s.DB.Users().GetDisplayFields(),
+			}, nil
+		}
+		return nil, err
+	}
+	return fieldSetting, nil
+}
