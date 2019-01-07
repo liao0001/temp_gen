@@ -1,11 +1,9 @@
 package controllers
 
 import (
-	"fmt"
 	"github.com/liao0001/orm"
 	"github.com/pkg/errors"
 	"github.com/revel/revel"
-	"time"
 	"xxhpt/app/models"
 	"xxhpt/app/utils"
 )

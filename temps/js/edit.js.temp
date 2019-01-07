@@ -1,5 +1,16 @@
-//新增js
+//编辑js
 $(function () {
+    var id = $.getUrlQueryString("id");
+    $.get($.baseUrl("/api/{{$.obj.ObjectJsonNames}}/get?id="+id),function (res) {
+        if (!res || res.scode !==0){
+            $.errorAlert(res.scode + res.error);
+            return
+        }
+        var form = $("#form-data-in");
+        {{ range $k,$field:= $.obj.Fields }}
+        form.find("[name={{$field.JsonName}}]").val(res.msg.{{$field.JsonName}});{{ end }}
+    });
+
     $("#form-data-in").validate({
         rules: {
             // nickname: {
@@ -33,12 +44,12 @@ $(function () {
         },
         submitHandler: function (form) {
             var params = {
-            {{range $k,$field:= $.obj.Fields}}
-              {{$field.JsonName}}:form.{{$field.JsonName}}.value,
-            {{end}}
+              {{range $k,$field:= $.obj.Fields}}
+                {{$field.JsonName}}:form.{{$field.JsonName}}.value,
+              {{end}}
             };
             $.ajax({
-                url:$.baseUrl("/api/{{$.obj.ObjectJsonNames}}/add"),
+                url:$.baseUrl("/api/{{$.obj.ObjectJsonNames}}/update"),
                 method:"post",
                 contentType:"application/text",
                 data:JSON.stringify(params),

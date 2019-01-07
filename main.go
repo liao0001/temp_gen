@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"temp_gen/read_files"
 	"text/template"
 )
@@ -26,6 +27,7 @@ type TargetPath struct {
 	RouterFilePath  string `yaml:"router_file_path"`
 	Types           string
 	Forced          bool
+	SourceFile      string
 }
 
 var globalPathConfig TargetPath
@@ -45,25 +47,32 @@ func init() {
 
 	var t string
 	flag.StringVar(&t, "t", "all", "types 表示需要生成的文件类型，可选项为: all(默认),js,webs,db,service,controller")
-	globalPathConfig.Types = t
+
+	var s string
+	flag.StringVar(&s, "s", "", "配置文件地址（yaml格式） 不能为空")
 
 	var f bool
 	flag.BoolVar(&f, "f", false, "是否强制替换; false(默认): 如果文件已存在，则会给出提示并跳过;true: 会强制覆盖原文件(慎用)")
 	flag.Parse()
 	globalPathConfig.Forced = f
+	globalPathConfig.SourceFile = s
+	globalPathConfig.Types = t
+	if len(strings.TrimSpace(s)) == 0 {
+		panic("指定配置文件不能为空,-h 查看帮助")
+	}
 }
 
 func main() {
 	//checkRevelProject(mainRoot)
 	//test()
 
-	generateTemps()
+	generateTemps(globalPathConfig.SourceFile)
 }
 
 //测试模板
-func generateTemps() {
+func generateTemps(targetFile string) {
 	var err error
-	obj := read_files.ReadYaml("./roles.yaml")
+	obj := read_files.ReadYaml(targetFile)
 	if globalPathConfig.Types == "all" || globalPathConfig.Types == "db" {
 		err = renderDb(obj, globalPathConfig.Forced)
 		if err != nil {
@@ -226,16 +235,13 @@ func updateDBFile(templ *read_files.TemplateStruct) {
 	repoSignStr := "////// repo"
 	syncTableStr := "////// syncTable"
 
-	repoNewStr := fmt.Sprintf(`func (db *DB) %s() *%sRepo {
-	return &%sRepo{orm.New(func() interface{} {
-		return &%s{}
-	})(db.Engine).WithSession(db.session)}
-}
+	repoNewStr := fmt.Sprintf("func (db *DB) %s() *%sRepo {\n"+
+		"\treturn &%sRepo{orm.New(func() interface{} {\n"+
+		"\t\treturn &%s{}\n"+
+		"\t})(db.Engine).WithSession(db.session)}\n"+
+		"}\n\n", templ.ObjectNames, templ.ObjectName, templ.ObjectName, templ.ObjectName)
 
-`, templ.ObjectNames, templ.ObjectName, templ.ObjectName, templ.ObjectName)
-
-	syncNewStr := fmt.Sprintf(`&%s{},
-`, templ.ObjectName)
+	syncNewStr := fmt.Sprintf("\t\t&%s{},\n", templ.ObjectName)
 
 	bs, err := ioutil.ReadFile(filePath)
 	if err != nil {
@@ -261,6 +267,8 @@ func updateDBFile(templ *read_files.TemplateStruct) {
 			return
 		}
 	}
+
+	updateIndexFields(templ)
 }
 
 func updateServiceFile(templ *read_files.TemplateStruct) {
@@ -268,11 +276,9 @@ func updateServiceFile(templ *read_files.TemplateStruct) {
 	signStr := "////// service defined"
 	setStr := "////// service set"
 
-	signNewStr := fmt.Sprintf(`%sService %sService
-`, templ.ObjectName, templ.ObjectName)
+	signNewStr := fmt.Sprintf("\n\t%sService %sService\n", templ.ObjectName, templ.ObjectName)
 
-	setNewStr := fmt.Sprintf(`%sService{baseService},
-`, templ.ObjectName)
+	setNewStr := fmt.Sprintf("\t%sService{baseService},\n", templ.ObjectName)
 
 	bs, err := ioutil.ReadFile(filePath)
 	if err != nil {
@@ -304,19 +310,45 @@ func updateRouterFile(templ *read_files.TemplateStruct) {
 	filePath := globalPathConfig.RouterFilePath
 	signStr := "########## template sign"
 
-	signNewStr := fmt.Sprintf(`
-# %s
-GET     /api/%s/list                       %s.List
-GET     /api/%s/get                        %s.GetById
-POST    /api/%s/add                        %s.Create
-POST    /api/%s/update                     %s.Update
-POST    /api/%s/delete                     %s.Delete
-POST    /api/%s/deletebyids                %s.DeleteByIds
-
-`, templ.Label, templ.ObjectJsonNames, templ.ObjectNames, templ.ObjectJsonNames, templ.ObjectNames,
+	signNewStr := fmt.Sprintf("\n"+
+		"# %s\n"+
+		"GET     /api/%s/list                       %s.List\n"+
+		"GET     /api/%s/get                        %s.GetById\n"+
+		"POST    /api/%s/add                        %s.Create\n"+
+		"POST    /api/%s/update                     %s.Update\n"+
+		"POST    /api/%s/delete                     %s.Delete\n"+
+		"POST    /api/%s/deletebyids                %s.DeleteByIds\n\n", templ.Label, templ.ObjectJsonNames, templ.ObjectNames, templ.ObjectJsonNames, templ.ObjectNames,
 		templ.ObjectJsonNames, templ.ObjectNames, templ.ObjectJsonNames, templ.ObjectNames,
 		templ.ObjectJsonNames, templ.ObjectNames, templ.ObjectJsonNames, templ.ObjectNames)
 
+	bs, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		fmt.Println("读取router失败:" + err.Error())
+		return
+	}
+
+	needUpdate := false
+	if bytes.Index(bs, []byte(signNewStr)) == -1 {
+		bs = bytes.Replace(bs, []byte(signStr), []byte(signNewStr+signStr), -1)
+		needUpdate = true
+	}
+
+	if needUpdate {
+		err = ioutil.WriteFile(filePath, bs, 0666)
+		if err != nil {
+			fmt.Println("重写router失败:" + err.Error())
+			return
+		}
+	}
+}
+
+func updateIndexFields(templ *read_files.TemplateStruct) {
+	filePath := filepath.Join(globalPathConfig.ControllersPath, "../libs", "init_data.go")
+	signStr := "////// index fields"
+	signNewStr := fmt.Sprintf("\terr = db.IndexFieldSettings().InitFieldInfoForTable(db.%s().Name(), \"%s\", db.%s().GetFields())\n"+
+		"\tif err != nil {\n"+
+		"\t\treturn err\n"+
+		"\t}\n\n", templ.ObjectNames, templ.Label, templ.ObjectNames)
 	bs, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		fmt.Println("读取router失败:" + err.Error())

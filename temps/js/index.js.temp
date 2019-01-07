@@ -149,6 +149,39 @@ $(function () {
             $('#formIsDisplay').val("true")
         }
     });
+
+    //获取index_fields
+        $.get($.baseUrl("/api/index_fields/list/{{$.obj.ObjectJsonNames}}"),function (res) {
+            $.ejsRenderTemplateForString("index-fields-select-form",indexFieldTemp,res.msg.settings);
+
+            $("#button_index_fields_submit").click(function () {
+                var param = {
+                    id:$("#index_fields_form").find(":input[name=id]").val()*1,
+                    user_id:$("#index_fields_form").find(":input[name=user_id]").val()*1,
+                    t_name:$("#index_fields_form").find(":input[name=t_name]").val()
+                }
+                var fields = [];
+                $("#index_fields_form").find(".fields-checkbox").each(function (i) {
+                    if (this.checked){
+                        fields.push($(this).attr("val"))
+                    }
+                })
+                param.fields = fields;
+                $.ajax({
+                    url:$.baseUrl("/api/index_fields/update"),
+                    method:"post",
+                    contentType:"application/text",
+                    data:JSON.stringify(param),
+                    success:function (res) {
+                        if (!res || res.scode!==0){
+                            $.errorAlert(res.error);
+                            return
+                        }
+                        window.location.reload();
+                    }
+                })
+            });
+        });
 });
 
 function clearFormValues(o) {
