@@ -1,0 +1,55 @@
+//用户新增和编辑的
+$(function () {
+    $("#form-data-in").validate({
+        rules: {
+            // nickname: {
+            //     required: true,
+            //     minlength: 3
+            // },
+            // user_name: {
+            //     required: true,
+            //     minlength: 3
+            // },
+            // birth:{
+            //     dateISO:true
+            // }
+            // url: {
+            //     required: true,
+            //     url: true
+            // },
+            // number: {
+            //     required: true,
+            //     number: true
+            // },
+            // min: {
+            //     required: true,
+            //     minlength: 6
+            // },
+            // max: {
+            //     required: true,
+            //     maxlength: 4
+            // }
+            // },
+        },
+        submitHandler: function (form) {
+            var params = {
+            {{range $k,$field:= $.obj.Fields}}
+              {{$field.JsonName}}:form.{{$field.JsonName}}.value,
+            {{end}}
+            };
+            $.ajax({
+                url:$.baseUrl("/api/users/add"),
+                method:"post",
+                contentType:"application/text",
+                data:JSON.stringify(params),
+                success:function (res) {
+                    if (!res || res.scode !== 0) {
+                        $.errorAlert(res.error);
+                        return
+                    }
+                    $("#cancel-button").click();
+                }
+            });
+        }
+    });
+});

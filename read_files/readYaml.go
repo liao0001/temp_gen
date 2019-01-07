@@ -14,12 +14,22 @@ type TemplateYaml struct {
 }
 
 type Field struct {
-	FieldName   string `yaml:"field_name"`
-	FieldType   string `yaml:"field_type"`
-	IsJson      bool   `yaml:"is_json"`
-	FieldLabel  string `yaml:"field_label"`
-	IsHidden    bool   `yaml:"is_hidden"`
-	JsonName    string `yaml:"json_name"`
+	FieldName  string `yaml:"field_name"`  //字段名
+	FieldType  string `yaml:"field_type"`  //字段类型
+	IsJson     bool   `yaml:"is_json"`     //是否为json数据
+	FieldLabel string `yaml:"field_label"` //字段显示值
+	IsHidden   bool   `yaml:"is_hidden"`   //是否隐藏
+	JsonName   string `yaml:"json_name"`   //json格式名称
+	//add、edit的表单类型  不填
+	// 默认为text 普通文本框 可选值:
+	// select 单选框
+	// multiple_select: 多选框
+	// date 日期选择框
+	// datetime 日期+时间选择
+	// email 邮箱控件
+	// radio
+	// checkbox
+	// 目前只支持text 、 radio (bool类型值)、date、datetime
 	DisplayType string `yaml:"display_type"`
 	IndexWidth  int    `yaml:"index_width"`
 	IsDisplay   bool   `yaml:"is_display"`

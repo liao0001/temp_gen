@@ -9,7 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"template/read_files"
+	"temp_gen/read_files"
 	"text/template"
 )
 
@@ -102,7 +102,7 @@ func generateTemps() {
 
 func renderDb(templ *read_files.TemplateStruct, forced bool) error {
 	filePath := filepath.Join(globalPathConfig.ModelsPath, templ.ObjectJsonNames+".go")
-	tempName := "db.temp"
+	tempName := filepath.Join("apps", "db.temp")
 	//生成对应的repo 和 sync
 	updateDBFile(templ)
 	return renderFile(templ, filePath, tempName, forced)
@@ -110,14 +110,14 @@ func renderDb(templ *read_files.TemplateStruct, forced bool) error {
 
 func renderService(templ *read_files.TemplateStruct, forced bool) error {
 	filePath := filepath.Join(globalPathConfig.ServicesPath, templ.ObjectJsonName+"_service.go")
-	tempName := "service.temp"
+	tempName := filepath.Join("apps", "service.temp")
 	updateServiceFile(templ)
 	return renderFile(templ, filePath, tempName, forced)
 }
 
 func renderController(templ *read_files.TemplateStruct, forced bool) error {
 	filePath := filepath.Join(globalPathConfig.ControllersPath, templ.ObjectJsonNames+".go")
-	tempName := "controller.temp"
+	tempName := filepath.Join("apps", "controller.temp")
 	return renderFile(templ, filePath, tempName, forced)
 }
 
@@ -128,24 +128,25 @@ func renderJs(templ *read_files.TemplateStruct, forced bool) error {
 
 	var err error
 	indexJs := filepath.Join(dirPath, "index.js")
-	indexTempName := "index.js.temp"
+	indexTempName := filepath.Join("js", "index.js.temp")
 	err = renderFile(templ, indexJs, indexTempName, forced)
 	if err != nil {
 		fmt.Println("生成index.js文件失败," + err.Error())
 	}
-	//addJs := filepath.Join(dirPath, "add.js")
-	//addTempName := "add.js.temp"
-	//err = renderFile(templ, addJs, addTempName, forced)
-	//if err != nil {
-	//	fmt.Println("生成add.js文件失败," + err.Error())
-	//}
-	//
-	//editJs := filepath.Join(dirPath, "edit.js")
-	//editTempName := "edit.js.temp"
-	//err = renderFile(templ, editJs, editTempName, forced)
-	//if err != nil {
-	//	fmt.Println("生成edit.js文件失败," + err.Error())
-	//}
+
+	addJs := filepath.Join(dirPath, "add.js")
+	addTempName := filepath.Join("js", "add.js.temp")
+	err = renderFile(templ, addJs, addTempName, forced)
+	if err != nil {
+		fmt.Println("生成add.js文件失败," + err.Error())
+	}
+
+	editJs := filepath.Join(dirPath, "edit.js")
+	editTempName := filepath.Join("js", "edit.js.temp")
+	err = renderFile(templ, editJs, editTempName, forced)
+	if err != nil {
+		fmt.Println("生成edit.js文件失败," + err.Error())
+	}
 	return nil
 }
 
@@ -156,10 +157,24 @@ func renderWebs(templ *read_files.TemplateStruct, forced bool) error {
 
 	var err error
 	indexHtml := filepath.Join(dirPath, "index.html")
-	indexTempName := "index.html.temp"
+	indexTempName := filepath.Join("htmls", "index.html.temp")
 	err = renderFile(templ, indexHtml, indexTempName, forced)
 	if err != nil {
 		fmt.Println("生成index.html文件失败," + err.Error())
+	}
+
+	addHtml := filepath.Join(dirPath, "add.html")
+	addTempName := filepath.Join("htmls", "add.html.temp")
+	err = renderFile(templ, addHtml, addTempName, forced)
+	if err != nil {
+		fmt.Println("生成add.html文件失败," + err.Error())
+	}
+
+	editHtml := filepath.Join(dirPath, "edit.html")
+	editTempName := filepath.Join("htmls", "edit.html.temp")
+	err = renderFile(templ, editHtml, editTempName, forced)
+	if err != nil {
+		fmt.Println("生成edit.html文件失败," + err.Error())
 	}
 	return nil
 }
