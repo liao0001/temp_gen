@@ -19,7 +19,7 @@ func (s *{{$.obj.ObjectName}}Service) Get{{$.obj.ObjectName}}IndexFieldInfos() (
 			return &models.IndexFieldSettingForUser{
 				UserID: userID,
 				TName:  tableName,
-				Fields: s.DB.Users().GetDisplayFields(),
+				Fields: s.DB.{{$.obj.ObjectNames}}().GetDisplayFields(),
 			}, nil
 		}
 		return nil, err

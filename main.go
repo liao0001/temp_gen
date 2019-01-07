@@ -239,7 +239,7 @@ func updateDBFile(templ *read_files.TemplateStruct) {
 		"\treturn &%sRepo{orm.New(func() interface{} {\n"+
 		"\t\treturn &%s{}\n"+
 		"\t})(db.Engine).WithSession(db.session)}\n"+
-		"}\n\n", templ.ObjectNames, templ.ObjectName, templ.ObjectName, templ.ObjectName)
+		"}\n", templ.ObjectNames, templ.ObjectName, templ.ObjectName, templ.ObjectName)
 
 	syncNewStr := fmt.Sprintf("\t\t&%s{},\n", templ.ObjectName)
 
@@ -250,7 +250,8 @@ func updateDBFile(templ *read_files.TemplateStruct) {
 	}
 
 	needUpdate := false
-	if bytes.Index(bs, []byte(repoNewStr)) == -1 {
+	if bytes.Index(bs, []byte(fmt.Sprintf("func (db *DB) %s() *%sRepo",
+		templ.ObjectNames, templ.ObjectName))) == -1 {
 		bs = bytes.Replace(bs, []byte(repoSignStr), []byte(repoNewStr+repoSignStr), -1)
 		needUpdate = true
 	}
@@ -282,17 +283,13 @@ func updateServiceFile(templ *read_files.TemplateStruct) {
 
 	bs, err := ioutil.ReadFile(filePath)
 	if err != nil {
-		fmt.Println("读取db.go失败:" + err.Error())
+		fmt.Println("读取base_service.go失败:" + err.Error())
 		return
 	}
 
 	needUpdate := false
-	if bytes.Index(bs, []byte(signNewStr)) == -1 {
+	if bytes.Index(bs, []byte(fmt.Sprintf("%sService %sService", templ.ObjectName, templ.ObjectName))) == -1 {
 		bs = bytes.Replace(bs, []byte(signStr), []byte(signNewStr+signStr), -1)
-		needUpdate = true
-	}
-
-	if bytes.Index(bs, []byte(setNewStr)) == -1 {
 		bs = bytes.Replace(bs, []byte(setStr), []byte(setNewStr+setStr), -1)
 		needUpdate = true
 	}
@@ -311,7 +308,7 @@ func updateRouterFile(templ *read_files.TemplateStruct) {
 	signStr := "########## template sign"
 
 	signNewStr := fmt.Sprintf("\n"+
-		"# %s\n"+
+		"## %s\n"+
 		"GET     /api/%s/list                       %s.List\n"+
 		"GET     /api/%s/get                        %s.GetById\n"+
 		"POST    /api/%s/add                        %s.Create\n"+
@@ -328,7 +325,7 @@ func updateRouterFile(templ *read_files.TemplateStruct) {
 	}
 
 	needUpdate := false
-	if bytes.Index(bs, []byte(signNewStr)) == -1 {
+	if bytes.Index(bs, []byte(fmt.Sprintf("## %s", templ.Label))) == -1 {
 		bs = bytes.Replace(bs, []byte(signStr), []byte(signNewStr+signStr), -1)
 		needUpdate = true
 	}
@@ -356,7 +353,8 @@ func updateIndexFields(templ *read_files.TemplateStruct) {
 	}
 
 	needUpdate := false
-	if bytes.Index(bs, []byte(signNewStr)) == -1 {
+	if bytes.Index(bs, []byte(fmt.Sprintf("db.IndexFieldSettings().InitFieldInfoForTable(db.%s().Name()",
+		templ.ObjectNames))) == -1 {
 		bs = bytes.Replace(bs, []byte(signStr), []byte(signNewStr+signStr), -1)
 		needUpdate = true
 	}
@@ -364,7 +362,7 @@ func updateIndexFields(templ *read_files.TemplateStruct) {
 	if needUpdate {
 		err = ioutil.WriteFile(filePath, bs, 0666)
 		if err != nil {
-			fmt.Println("重写router失败:" + err.Error())
+			fmt.Println("重写indexfield失败:" + err.Error())
 			return
 		}
 	}
